@@ -14,6 +14,9 @@ PROGS-$(CONFIG_FFMPEG)   += ffmpeg
 PROGS-$(CONFIG_FFPLAY)   += ffplay
 PROGS-$(CONFIG_FFPROBE)  += ffprobe
 PROGS-$(CONFIG_FFSERVER) += ffserver
+### KMP
+PROGS-yes                += kmp
+###
 
 PROGS      := $(PROGS-yes:%=%$(EXESUF))
 INSTPROGS   = $(PROGS-yes:%=%$(PROGSSUF)$(EXESUF))
@@ -24,6 +27,9 @@ TOOLS       = qt-faststart trasher
 TOOLS-$(CONFIG_ZLIB) += cws2fws
 
 BASENAMES   = ffmpeg ffplay ffprobe ffserver
+### KMP
+BASENAMES  += kmp
+###
 ALLPROGS    = $(BASENAMES:%=%$(PROGSSUF)$(EXESUF))
 ALLPROGS_G  = $(BASENAMES:%=%$(PROGSSUF)_g$(EXESUF))
 ALLMANPAGES = $(BASENAMES:%=%.1)
@@ -38,11 +44,20 @@ FFLIBS-$(CONFIG_SWSCALE)  += swscale
 
 FFLIBS := avutil
 
+### KMP
+FFLIBS_KMP = vo sub
+FFLIBS    += $(FFLIBS_KMP)
+###
+
 DATA_FILES := $(wildcard $(SRC_PATH)/presets/*.ffpreset) $(SRC_PATH)/doc/ffprobe.xsd
 
 SKIPHEADERS = cmdutils_common_opts.h
 
 include $(SRC_PATH)/common.mak
+
+### KMP
+LDFLAGS += $(FFLIBS_KMP:%=-Llib%)
+###
 
 FF_EXTRALIBS := $(FFEXTRALIBS)
 FF_DEP_LIBS  := $(DEP_LIBS)
@@ -89,6 +104,19 @@ ffserver_g$(EXESUF): LDFLAGS += $(FFSERVERLDFLAGS)
 
 %$(PROGSSUF)_g$(EXESUF): %.o cmdutils.o $(FF_DEP_LIBS)
 	$(LD) $(LDFLAGS) -o $@ $< cmdutils.o $(FF_EXTRALIBS)
+
+### KMP
+KMP_OBJS = kmp.o kmp_thread.o kmp_img.o kmp_timer.o kmp_sub.o kmp_osd.o \
+           kmp_tbm.o kmp_playlist.o
+
+kmp_g$(EXESUF): FF_EXTRALIBS += -lkva -lkai
+kmp_g$(EXESUF): $(KMP_OBJS) cmdutils.o $(FF_DEP_LIBS)
+	$(LD) $(LDFLAGS) -o $@ $(KMP_OBJS) cmdutils.o $(FF_EXTRALIBS)
+
+test$(EXESUF): FF_EXTRALIBS += -lkva
+test$(EXESUF): test.o $(FF_DEP_LIBS)
+	$(LD) $(LDFLAGS) -o $@ test.o $(FF_EXTRALIBS)
+###
 
 OBJDIRS += tools
 
@@ -141,6 +169,9 @@ clean::
 	$(RM) $(CLEANSUFFIXES:%=tools/%)
 	$(RM) coverage.info
 	$(RM) -r coverage-html
+### KMP
+	$(RM) test$(EXESUF)
+###
 
 distclean::
 	$(RM) $(DISTCLEANSUFFIXES)

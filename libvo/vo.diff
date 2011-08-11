@@ -1,0 +1,61 @@
+diff -uNr  aclib.c.org aclib.c
+--- aclib.c.org	2010-01-11 17:13:04.000000000 +0900
++++ aclib.c	2011-08-11 13:07:46.000000000 +0900
+@@ -44,6 +44,17 @@
+ 
+ #if ARCH_X86
+ 
++#undef HAVE_MMX
++#undef HAVE_MMX2
++#undef HAVE_AMD3DNOW
++#undef HAVE_SSE
++#undef HAVE_SSE2
++#define HAVE_MMX 0
++#define HAVE_MMX2 0
++#define HAVE_AMD3DNOW 0
++#define HAVE_SSE 0
++#define HAVE_SSE2 0
++
+ #if (HAVE_MMX && !HAVE_AMD3DNOW && !HAVE_MMX2) || CONFIG_RUNTIME_CPUDETECT
+ #define COMPILE_MMX
+ #endif
+diff -uNr  aclib_template.c.org aclib_template.c
+--- aclib_template.c.org	2010-01-11 17:13:04.000000000 +0900
++++ aclib_template.c	2011-08-11 00:11:36.000000000 +0900
+@@ -19,6 +19,9 @@
+  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+  */
+ 
++#undef ASMALIGN
++#define ASMALIGN(ZEROBITS) ".align " #ZEROBITS "\n\t"
++
+ #if !HAVE_SSE2
+ /*
+    P3 processor has only one SSE decoder so can execute only 1 sse insn per
+diff -uNr  cpudetect.c.org cpudetect.c
+--- cpudetect.c.org	2009-05-31 23:04:24.000000000 +0900
++++ cpudetect.c	2011-01-26 02:29:04.000000000 +0900
+@@ -2,7 +2,7 @@
+ #include "cpudetect.h"
+ #include "mp_msg.h"
+ 
+-CpuCaps gCpuCaps;
++CpuCaps gCpuCaps = { 0 };
+ 
+ #include <stdlib.h>
+ 
+@@ -282,10 +282,10 @@
+ #endif /* defined(__MINGW32__) || defined(__CYGWIN__) */
+ 
+ #ifdef __OS2__
+-ULONG _System os2_sig_handler_sse( PEXCEPTIONREPORTRECORD       p1,
+-                                   PEXCEPTIONREGISTRATIONRECORD p2,
+-                                   PCONTEXTRECORD               p3,
+-                                   PVOID                        p4 )
++static ULONG _System os2_sig_handler_sse( PEXCEPTIONREPORTRECORD       p1,
++                                          PEXCEPTIONREGISTRATIONRECORD p2,
++                                          PCONTEXTRECORD               p3,
++                                          PVOID                        p4 )
+ {
+    if(p1->ExceptionNum == XCPT_ILLEGAL_INSTRUCTION){
+       mp_msg(MSGT_CPUDETECT, MSGL_V, "SIGILL, ");

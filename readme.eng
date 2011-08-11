@@ -1,0 +1,410 @@
+                           K Movie Player v0.6.3
+                          -----------------------
+                            
+1. Introduce
+------------
+  
+  This program, based on FFplay, is made to play various media files on OS/2 
+and eComStation.
+
+2. Development Environment
+--------------------------
+  
+  - OS/2 Warp v4 for Korean with FixPak #15
+  
+  - GCC v4.4.5
+  
+  - OS/2 ToolKit v4.5
+  
+  - OS2UNIX environment ( GNU Make v3.81r3, cp, rm, ... )
+
+  - lxlite v1.3.3 ( for strip of debugging infos )
+  
+  - SubVersion v1.6.13( to merge with latest FFMpeg sources )
+
+  - libkva v1.1.2
+  
+  - libkai v1.1.1
+  
+3. Requirement
+---------------------
+
+  - Audio : UNIAUD, DART
+
+  - Video : SNAP, WarpOverlay!, DIVE
+
+  - RunTime : kLIBC v0.6.3
+  
+4. Test Environment
+-------------------
+
+  This program is tested on OS/2 Warp v4 for Korean with FixPak #15 and 
+eComStation 1.2MR.
+
+5. Installation
+---------------
+
+  Put kmp.exe into any directory. If you want to use SNAP overlay, you need 
+snapwrap.dll as well. Put it with kmp.exe or on a directory in LIBPATH.
+  
+6. Usage and Options
+--------------------
+
+6.1 Usage
+---------
+
+6.1.1 Usage
+--------------
+    kmp [options] [@response_file] input_file
+  
+6.1.2 While playing
+-------------------
+q                   quit
+f, Enter            toggle full screen
+p, SPC              toggle pause
+m                   toggle audio mute
+a                   cycle audio channel
+v                   cycle video channel
+t                   cycle subtitle channel
+w                   show audio waves
+left/right          seek backward/forward 10 seconds
+Ctrl+left/right     seek backward/forward 1 minute
+down/up             volume down/up by 1%
+Ctrl+down/up        volume down/up by 5%
+mouse click         seek to position in file corresponding to fraction of width
++/-                 grow up/down font size
+Alt-0/1/2/3         set aspec ratio none/original/force43/force169 respectively
+8/9                 brightness down/up by 5 level(except dive)
+i/o                 contrast down/up by 5 level(except dive)
+k/l                 saturation down/up by 5 level(except dive)
+,/.                 hue down/up by 5 level(except dive)
+/                   reset attributes(b/c/s/h) to default value(except dive)
+[/]                 correct subtitle sync -/+ 0.5 seconds
+PageUp/PageDown     play a previous/next file
+;/'                 correct audio sync -/+ 0.1 seconds(experimental)
+d                   display an information about a playing file on OSD
+
+6.2 Options
+------------
+
+6.2.1 Main options
+------------------
+-video driver       set video driver (driver=auto/snap/wo/dive)
+-audio driver       set audio driver (driver=auto/uniaud/dart)
+-vol level          set initial volume level in percentage
+-subfont xx.name    set subtitle font name and size (xx=size, name=font name)
+-osdfont xx.name    set OSD font name and size (xx=size, name=font name)
+-aspect ratio       set aspect ratio (ratio=none, original, force43, force169)
+-framedrop          frame drop if necessary
+-hidemouse          hide mouse pointer on full screen mode
+-brightness level   set brightness level, except dive (level=0..255)
+-contrast level     set contrast level, except dive (level=0..255)
+-saturation level   set saturation level, except dive (level=0..255)
+-hue level          set hue level, except dive (level=0..255)
+-res48              resample 48KHz audio to 44.1KHz(experimental)
+-subimg             display subtitles/OSD to image
+-subcolor f,o,s     set subtitle color in hexa RGB(font, outline, shadow) *
+-osdcolor f,o,s     set OSD color in hexa RGB(font, outline, shadow) *
+-autoadd            automatically add files having a similar name
+-xext e1,e2,...     exclude the following extensions on using -autoadd
+
+* Default values are f=FFFFFF, o=0F0F0F, s=0F0F0F.
+
+6.2.2 Advanced options
+----------------------
+-fixt23             workaround diagonal stripes on T23 laptop with S3 Video
+-noaudioshare       open audio as exclusive mode
+-fixsnap            workaround for a larger movie than screen size on snap mode
+-audiobufsize size  set audio buffer size in bytes
+-seekinterval time  set seek interval time in ms
+
+6.2.3 KMPOPT Environment Variable
+---------------------------------
+  You can use 'KMPOPT' env. var. for your favorite options. For examples,
+  
+      SET KMPOPT=-vol 50
+      KMP input_file
+   
+  This is the same as the following.
+     
+      KMP -vol 50 input_file
+      
+6.2.4 Response file
+-------------------
+  You can use response file for your favorite options. But you should specify 
+one argument per one line in response file. For examples,
+
+      ----- KMP.CFG start
+      -vol
+      50
+      ----- KMP.CFG end
+    
+      KMP @KMP.CFG input_file
+    
+  This is the same as the following.
+  
+      KMP -vol 50 input_file
+      
+7. Limitations/Known bugs
+-------------------------
+
+  - Some movie files aren't played up to its play time or auto-closed.
+  
+  - On dive mode, boundary and shadow of subtitle is not displayed well. 
+    GpiBitBlt() is missing a needed function. Use -subimg option.
+    
+  - On dive mode, subtitle/OSD is flickering. Use -subimg option.
+  
+  - Don't support codepage conversion of subtitle.
+  
+  - If there is no font with specified name and size, system default font( 
+    maybe WarpSans ) is used. But in this case, you cannot adjust font size.
+
+  - On wave mode, OSD flicker.
+  
+  - On pause, updating of window cause cpu load to high.
+  
+  - On near the end of movie, sometimes seek fails.
+  
+  - Non-interleaved AVI file is not supported correctly.
+
+  - The old UNIAUD driver may cause an audio problem, especially when seeking. 
+  
+  - If you use DIVE mode while turning comet curosr feature on, system hiccups 
+    whenever moving mouse. Use only one of them.
+    
+8. TODOs...
+-----------
+
+  - Support sliderbar
+      
+9. History
+----------
+
+  - v0.6.3 ( 2011/02/06 )
+    .Synchronized with FFplay SVN-r26402 sources
+    .When using audio mode, -subimg causes KMP to crash. Fixed
+    .16bits colors dive mode causes KMP to crash. Fixed
+    .when using both uniaud and snap, KMP hangs. Fixed
+ 
+  - v0.6.2 ( 2010/02/28 )
+    .Synchronized with FFplay SVN-r21861 sources
+    .Audio is not played if video is not played due to an invalid video 
+     driver. Fixed.       
+    .Display an information(filename, playing index, subtitle) about a playing 
+     file on OSD. Support 'd' key.
+    .Improved LIBPATHSTRICT compatibility( experimental )
+
+  - v0.6.1 ( 2010/01/24 )
+    .Sometimes audio_thread() does not quit. Fixed
+    .When it takes too long time to seek, looping sounds are generated. Fixed
+     ( using libkai v1.0.1 )
+    
+  - v0.6.0 ( 2010/01/14 )
+    .Support UNIAUD( -audio, using libkai v1.0.0 )
+    .Suport audio sync correction
+    .Support to set seek time interval( -seekinterval )
+    .Disable Doodle's Screen Saver while playing( using libkva v1.1.0 )
+    .Use 2x2 dithering on DIVE mode
+    .Sort subtitles by time
+    .Video attributes are not conserved when using a playlist. Fixed
+    .The wrong subtitle may be played if the subtitle file name consist of 
+     non-ASCII. Fixed
+    .Recgonize the empty subtitle line as the last subtitle. Fixed
+    .The next file is played even though pressing the close button. Fixed
+
+  - v0.5.1 ( 2008/10/23 )
+    .In case of YUVJ420P movies, swscaler print out messages continuously. 
+     Fixed( Treat PIX_FMT_YUVJ420P as PIX_FMT_YUV420P )
+    .On 15 and 16 bpp modes, color space convertion to RGB has a problem. Fixed
+     ( Report by BentN )
+    .If extensino is different, -autoadd does not work correctly. Fixed
+
+  - v0.5.0 ( 2008/10/18 )
+    .Synchronized with FFMpeg SVN-r15572 sources
+    .Changed compiler to GCC 4.3.2( Fixed stack variable alignment warning )
+    .Support to play multiple files
+    .Support to add files having a similar name automatically
+     ( -autoadd, -xext )
+    .Support auto scale down if a movie size is larger than screen size
+     ( -fixsnap )
+    .Support to set audio buffer size ( -audiobufsize )
+    .Support response file
+    .Fall back to DIVE if HW is in use when auto-mode
+    .KMP crashed abnormally if SNAP overlay is not supported. Fixed.
+    .Sometimes SIGFPE is caused. Fixed
+     ( moved img_init() from video_thread() to queue_picture())
+    .Using -subimg, if OSD is clipped, KMP crashed abnormally. Fixed.
+     ( Display OSD down )
+    .Change aspect ratio make all screen attributes to be initialized. Fixed.
+
+  - v0.4.1 ( 2007/01/24 )
+    .Synchronized with FFMpeg SVN-r11604 source
+    .Use thread feature
+    .Support '-osdfont' option
+    .Support optimized IMDCT transformation for AC3 audio
+    .Print CPU type and SwScaler flag
+    .Improved performance of playing YV12 movie on snap mode.
+    .Changed the order of video driver auto-selection from wo > snap > dive to 
+     snap > wo > dive.
+    .On snap mode, attribute options do not work. Fixed.
+    .On snap mode, Once restore window after minimize it, all attributes are 
+     reset. Fixed.
+    .On snap mode, video is not displayed other modes than 16M colors one. 
+     Fixed.
+    .If movie image format is not YUV420P, SwScaler print messages 
+     continuously. Fixed.
+    .SSE is not detected. Fixed.
+    .Window is not cleared when video cannot be played. Fixed.
+
+  - v0.4.0 ( 2007/12/29 )
+    .Synchronized with FFMpeg SVN-r11313 source
+    .Support SNAP overlay ( snapwrap.dll is needed, Thanks to Mike Forester )
+    
+  - v0.3.1 ( 2007/06/24 )
+    .Switch to wave mode if no video stream
+    .Support to open audio as exclusive mode
+    .Support to set colors of subtitle and OSD
+    .Crashed if no video stream. Fixed( Thanks to Franz Bakan for his 
+     reporting )
+    .On WO mode, if video card cannot downscale, image displayed incorrectly. 
+     Fixed( Thanks to Franz Bakan for his reporting and testing )
+    .When playing audio files, window is updated periodically even if pause 
+     mode. Fixed.     
+    .-fs option does not work. Fixed.
+    .Crahsed when height of window is 0. Fixed.
+    .On DIVE mode, colors of image are displayed incorrectly on 15/16 bits 
+     colors mode. Fixed.
+    .On 15/16 bits colors mode, font is not displayed clearly when using 
+     -subimg. Fixed
+    .On 15/16 bits colors mode, outline is not displayed. use -subcolor and 
+     -osdcolor. For examples, -subcolor ,0F0F0F,0F0F0F -osdcolor ,0F0F0F,0F0F0F
+    .SIGSEGV occur in osdInvalidate(). Fixed.
+    .SIGSEGV occur in tbDelete(). Fixed.
+    .Sometimes window size is set to 640x480 regardless of movie size. Fixed.
+  
+  - v0.3.0 ( 2007/05/27 )
+    .Synchronized with FFmpeg 2007/05/24 sources
+    .Support to display subtitle/OSD directly to image ( useful for DIVE )
+    .Support AAC audio format
+    .Support to resample 48KHz audio to 44.1KHz (experimental )
+    .Use libswcale instead of libyuv
+    .Use fastmemcpy()
+    .Right side of bitmap of subtitle/OSD is truncated. Fixed.
+    .When seeking, subtitle is not disappeared. Fixed.
+    
+  - v0.2.2 ( 2007/03/14 )
+    .Sometimes floating-point arithmetic fails. Fixed.
+    .When '/' is pressed, an OSD is not displayed. Fixed.
+    .Changed check method for auto-close
+    
+  - v0.2.1 ( 2007/03/04 )
+    .Improved performance when image format of codec was YUV420P
+    .On puase, window is not updated. Fixed.
+    .On wave mode, OSD is not displayed. Fixed.
+    .On wo mode, when visible region of window is changed, flickering occur.
+     Fixed.
+    .Missed the contribution of Dmitry Froloff to '-hidemouse' option in 
+     v0.2.0. Fixed.
+    
+  - v0.2.0 ( 2007/02/26 )
+    .Display information using OSD instaed of TitleBar
+    .Support framedrop feature
+    .Support to hide mouse pointer when full-screen mode ( by Dmitry Froloff )
+    .Support to control Brightness/Contrast/Saturation/Hue( only for wo )
+    .Support to adjust sync of text file subtitle
+    .When WarpCenter is running, even though changing to full-screen mode, 
+     WarpCetner still appear. Fixed. ( by Dmitry Froloff )
+    .Bitmap(Raster) font cannot be selected. Fixed.
+    
+  - v0.1.0 ( 2007/02/12 )
+    .Auto close when finishing play back
+    .Support text file subtitle( tested only on SAMI file )
+    .Support to change font size on play back
+    .Support to change aspect ratio on play back
+    .Display information related to play back on title bar
+    .Improved seek function
+    .Modulized sources
+    
+  - Test vesrion ( 2007/02/02 )
+    .Removed dependency on SDL of FFplay, and changed the name to KMP
+    .Added volume control feature
+    .Added audio mute on/off feature
+    .Changed function of some keys
+    .Improved 'Pause'( After long pause, sync will be incorrect ).
+    
+10. Compilation
+---------------
+
+  First of all, you should decompress source archive to any directoy you want, 
+and modify C_INCLUDE_PATH, CPLUS_INCLUDE_PATH, LIBRARY_PATH for OS/2 ToolKit 
+v4.5.
+
+  Now, run 'configure.cmd'.
+  
+  Then, run 'make' as the following.
+  
+      make SHELL=/bin/sh
+
+  To update sources, do the following
+  
+      svn update
+      
+11. Modules
+-----------
+
+  kmp.exe      : 'K Movie Player' executable file.
+  snapwrap.dll : Wrapper file to use SNAP overlay.
+
+12. Credits
+-----------
+
+  FFplay     : Base player
+  WarpVision : libdart, libsub
+  MPlayer    : libfaad, libvo
+
+13. Special Thanks To ...
+-------------------------
+
+  Dave Yeo : Contribute OS/2 patches to FFmpeg
+
+14. Tips
+--------
+
+  KMP use morphing method to use both command and PM window. So when using 
+file association, command window is always opened. To avoid this problem, you 
+can do the following.
+
+  First of all, you need MARKEXE.EXE of ToolKit 4.5. If you have it, do the 
+following.
+
+    copy kmp.exe kmppm.exe
+    markexe windowapi kmppm.exe
+
+  Or, you can use 'emxbind.exe' instead of 'markexe.exe' as the following.
+  
+    emxbind -e -p kmppm.exe
+        
+Now, you can use kmppm.exe for file association, and command window is not 
+opened any more. Of course, you cannot see any infos and helps. Use this only 
+for file association. ^^
+
+
+15. Donation
+------------
+
+  If you are satisfied with this program and want to donate to me, please visit
+the following URL.
+
+    http://www.ecomstation.co.kr/komh/donate.html
+
+16. Contacts
+------------
+
+  e-mail : komh@chollian.net
+  ICQ    : 124861818
+  MSN    : komh@chollian.net
+  IRC    : lvzuufx, #os2 at HANIRC(irc.hanirc.org)
+               
+                                                       KO Myung-Hun
+               

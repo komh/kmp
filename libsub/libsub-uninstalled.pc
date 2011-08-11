@@ -1,0 +1,12 @@
+prefix=
+exec_prefix=
+libdir=${pcfiledir}
+includedir=/lang/work/kmp/kmp-work
+
+Name: libsub
+Description: KMP subtitle library
+Version: 0.10.0
+Requires: libavutil = 50.9.0
+Conflicts:
+Libs: ${libdir}/libsub_s.a
+Cflags: -I${includedir}
