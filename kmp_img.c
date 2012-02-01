@@ -125,6 +125,11 @@ static APIRET imgConvertInit( LONG cx, LONG cy, FOURCC *pfcc )
         *pfcc = FOURCC_YVU9;
         dst_pix_fmt = PIX_FMT_YUV410P;
     }
+    else if( kvac.ulInputFormatFlags & KVAF_BGR32 )
+    {
+        *pfcc = FOURCC_BGR4;
+        dst_pix_fmt = PIX_FMT_BGR32;
+    }
     else if( kvac.ulInputFormatFlags & KVAF_BGR24 )
     {
         *pfcc = FOURCC_BGR3;
