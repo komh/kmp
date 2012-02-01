@@ -3813,6 +3813,8 @@ static void opt_video( const char *opt, const char *arg )
         video_driver = KVAM_WO;
     else if( !strcmp( arg, "dive" ))
         video_driver = KVAM_DIVE;
+    else if( !strcmp( arg, "vman" ))
+        video_driver = KVAM_VMAN;
     else
     {
         fprintf( stderr, "invalid video driver : %s\n", arg );
@@ -4045,17 +4047,17 @@ static const OptionDef options[] = {
     { "showmode", HAS_ARG, {(void*)opt_show_mode}, "select show mode (0 = video, 1 = waves, 2 = RDFT)", "mode" },
     { "default", HAS_ARG | OPT_AUDIO | OPT_VIDEO | OPT_EXPERT, {(void*)opt_default}, "generic catch all option", "" },
     { "i", HAS_ARG, {(void *)opt_input_file}, "read specified file", "input_file"},
-    { "video", HAS_ARG, {(void*)opt_video}, "set video driver (driver=auto/snap/wo/dive)", "driver" },
+    { "video", HAS_ARG, {(void*)opt_video}, "set video driver (driver=auto/snap/wo/dive/vman)", "driver" },
     { "audio", HAS_ARG, {(void*)opt_audio}, "set audio driver (driver=auto/uniaud/dart)", "driver" },
     { "vol", HAS_ARG, {(void*)opt_volume}, "set initial volume level in percentage", "level" },
     { "subfont", HAS_ARG, {(void*)opt_subfont}, "set subtitle font name and size (xx=size, name=font name)", "xx.name" },
     { "osdfont", HAS_ARG, {(void*)opt_osdfont}, "set OSD font name and size (xx=size, name=font name)", "xx.name" },
     { "aspect", HAS_ARG, {(void*)opt_aspect}, "set aspect ratio (ratio=none, original, force43, force169)", "ratio" },
     { "hidemouse", OPT_BOOL, {(void*)&hide_mouse}, "hide mouse pointer on full screen mode" },
-    { "brightness", HAS_ARG, {(void*)opt_brightness}, "set brightness level, except dive (level=0..255)", "level" },
-    { "contrast", HAS_ARG, {(void*)opt_contrast}, "set contrast level, except dive (level=0..255)", "level" },
-    { "saturation", HAS_ARG, {(void*)opt_saturation}, "set saturation level, except dive (level=0..255)", "level" },
-    { "hue", HAS_ARG, {(void*)opt_hue}, "set hue level, except dive (level=0..255)", "level" },
+    { "brightness", HAS_ARG, {(void*)opt_brightness}, "set brightness level, except dive/vman (level=0..255)", "level" },
+    { "contrast", HAS_ARG, {(void*)opt_contrast}, "set contrast level, except dive/vman (level=0..255)", "level" },
+    { "saturation", HAS_ARG, {(void*)opt_saturation}, "set saturation level, except dive/vman (level=0..255)", "level" },
+    { "hue", HAS_ARG, {(void*)opt_hue}, "set hue level, except dive/vman (level=0..255)", "level" },
     { "res48", OPT_BOOL, {(void*)&resample}, "resample 48KHz audio to 44.1KHz(experimental)" },
     { "subimg", OPT_BOOL, {(void*)&use_subimg}, "display subtitles/OSD to image" },
     { "subcolor", HAS_ARG, {(void*)opt_subcolor}, "set subtitle color in hexa RGB(font, outline, shadow)", "f,o,s" },
@@ -4113,11 +4115,11 @@ static int opt_help(const char *opt, const char *arg)
            "Ctrl+down/up        volume down/up by 5%%\n"
            "+/-                 grow up/down font size\n"
            "Alt-0/1/2/3         set aspec ratio none/original/force43/force169 respectively\n"
-           "8/9                 brightness down/up by 5 level(except dive)\n"
-           "i/o                 contrast down/up by 5 level(except dive)\n"
-           "k/l                 saturation down/up by 5 level(except dive)\n"
-           ",/.                 hue down/up by 5 level(except dive)\n"
-           "/                   reset attributes(b/c/s/h) to default value(except dive)\n"
+           "8/9                 brightness down/up by 5 level(except dive/vman)\n"
+           "i/o                 contrast down/up by 5 level(except dive/vman)\n"
+           "k/l                 saturation down/up by 5 level(except dive/vman)\n"
+           ",/.                 hue down/up by 5 level(except dive/vman)\n"
+           "/                   reset attributes(b/c/s/h) to default value(except dive/vman)\n"
            "[/]                 correct subtitle sync -/+ 0.5 seconds\n"
            "PageUp/PageDown     play a previous/next file\n"
            ";/'                 correct audio sync -/+ 0.1 seconds(experimental)\n"
