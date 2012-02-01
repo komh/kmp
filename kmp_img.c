@@ -74,7 +74,7 @@
 
         KO Myung-Hun <komh@chollian.net> 2009/02/27
             - Enable 2x2 dithering on DIVE mode.
-            
+
         KO Myung-Hun <komh@chollian.net> 2011/01/27
             - Set m_sws to NULL on initialization and termination
             - Remove emms_c() call after sws_scale() call

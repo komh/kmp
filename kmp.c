@@ -4278,7 +4278,7 @@ do
 
         if( !window_title )
             WinStartTimer( hab, hwndKMP, TID_SECOND, INTERVAL_SECOND );
-            
+
         while( WinGetMsg( hab, &qm, NULLHANDLE, 0, 0 ))
             WinDispatchMsg( hab, &qm );
 
