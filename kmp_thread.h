@@ -40,7 +40,7 @@ Cond   CreateCond( VOID );
 void   DestroyCond( Cond cond );
 void   CondSignal( Cond cond );
 void   CondWait( Cond cond, Mutex mutex );
-Thread CreateThread( void ( *fn )( void * ), void *data );
+Thread CreateThread( int ( *fn )( void * ), void *data );
 void   WaitThread( Thread tid );
 
 #ifdef __cplusplus

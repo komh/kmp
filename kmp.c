@@ -345,7 +345,6 @@ static enum ShowMode show_mode = SHOW_MODE_NONE;
 static const char *audio_codec_name;
 static const char *subtitle_codec_name;
 static const char *video_codec_name;
-
 static int rdftspeed=20;
 #if CONFIG_AVFILTER
 static char *vfilters = NULL;
@@ -356,6 +355,26 @@ static int is_full_screen;
 static int64_t audio_callback_time;
 
 static AVPacket flush_pkt;
+
+/* Stuffs to ease the merge with ffplay of upstream */
+#define SDL_CreateMutex     CreateMutex
+#define SDL_LockMutex       LockMutex
+#define SDL_UnlockMutex     UnlockMutex
+#define SDL_DestroyMutex    DestroyMutex
+
+#define SDL_CreateCond      CreateCond
+#define SDL_CondSignal      CondSignal
+#define SDL_CondWait        CondWait
+#define SDL_DestroyCond     DestroyCond
+
+#define SDL_CreateThread        CreateThread
+#define SDL_WaitThread( t, s )  WaitThread( t )
+
+#define SDL_Delay   tmrDelay
+#define SDL_getenv  getenv
+#define SDL_atoi    atoi
+
+#define memcpy  fast_memcpy
 
 static int video_driver = KVAM_AUTO;
 static int audio_driver = KAIM_AUTO;
@@ -446,7 +465,7 @@ static int packet_queue_put(PacketQueue *q, AVPacket *pkt)
     pkt1->next = NULL;
 
 
-    LockMutex(q->mutex);
+    SDL_LockMutex(q->mutex);
 
     if (!q->last_pkt)
 
@@ -457,9 +476,9 @@ static int packet_queue_put(PacketQueue *q, AVPacket *pkt)
     q->nb_packets++;
     q->size += pkt1->pkt.size + sizeof(*pkt1);
     /* XXX: should duplicate packet data in DV case */
-    CondSignal(q->cond);
+    SDL_CondSignal(q->cond);
 
-    UnlockMutex(q->mutex);
+    SDL_UnlockMutex(q->mutex);
     return 0;
 }
 
@@ -467,8 +486,8 @@ static int packet_queue_put(PacketQueue *q, AVPacket *pkt)
 static void packet_queue_init(PacketQueue *q)
 {
     memset(q, 0, sizeof(PacketQueue));
-    q->mutex = CreateMutex();
-    q->cond = CreateCond();
+    q->mutex = SDL_CreateMutex();
+    q->cond = SDL_CreateCond();
     packet_queue_put(q, &flush_pkt);
 }
 
@@ -476,7 +495,7 @@ static void packet_queue_flush(PacketQueue *q)
 {
     AVPacketList *pkt, *pkt1;
 
-    LockMutex(q->mutex);
+    SDL_LockMutex(q->mutex);
     for(pkt = q->first_pkt; pkt != NULL; pkt = pkt1) {
         pkt1 = pkt->next;
         av_free_packet(&pkt->pkt);
@@ -486,25 +505,25 @@ static void packet_queue_flush(PacketQueue *q)
     q->first_pkt = NULL;
     q->nb_packets = 0;
     q->size = 0;
-    UnlockMutex(q->mutex);
+    SDL_UnlockMutex(q->mutex);
 }
 
 static void packet_queue_end(PacketQueue *q)
 {
     packet_queue_flush(q);
-    DestroyMutex(q->mutex);
-    DestroyCond(q->cond);
+    SDL_DestroyMutex(q->mutex);
+    SDL_DestroyCond(q->cond);
 }
 
 static void packet_queue_abort(PacketQueue *q)
 {
-    LockMutex(q->mutex);
+    SDL_LockMutex(q->mutex);
 
     q->abort_request = 1;
 
-    CondSignal(q->cond);
+    SDL_CondSignal(q->cond);
 
-    UnlockMutex(q->mutex);
+    SDL_UnlockMutex(q->mutex);
 }
 
 /* return < 0 if aborted, 0 if no packet and > 0 if packet.  */
@@ -513,7 +532,7 @@ static int packet_queue_get(PacketQueue *q, AVPacket *pkt, int block)
     AVPacketList *pkt1;
     int ret;
 
-    LockMutex(q->mutex);
+    SDL_LockMutex(q->mutex);
 
     for(;;) {
         if (q->abort_request) {
@@ -536,10 +555,10 @@ static int packet_queue_get(PacketQueue *q, AVPacket *pkt, int block)
             ret = 0;
             break;
         } else {
-            CondWait(q->cond, q->mutex);
+            SDL_CondWait(q->cond, q->mutex);
         }
     }
-    UnlockMutex(q->mutex);
+    SDL_UnlockMutex(q->mutex);
     return ret;
 }
 
@@ -1052,8 +1071,8 @@ static void stream_close(VideoState *is)
     int i;
     /* XXX: use a special url_shutdown call to abort parse cleanly */
     is->abort_request = 1;
-    WaitThread( is->read_tid );
-    WaitThread( is->refresh_tid );
+    SDL_WaitThread(is->read_tid, NULL);
+    SDL_WaitThread(is->refresh_tid, NULL);
 
     /* free all pictures */
     for(i=0;i<VIDEO_PICTURE_QUEUE_SIZE; i++) {
@@ -1072,10 +1091,10 @@ static void stream_close(VideoState *is)
 
     tmrDone();
 
-    DestroyMutex(is->pictq_mutex);
-    DestroyCond(is->pictq_cond);
-    DestroyMutex(is->subpq_mutex);
-    DestroyCond(is->subpq_cond);
+    SDL_DestroyMutex(is->pictq_mutex);
+    SDL_DestroyCond(is->pictq_cond);
+    SDL_DestroyMutex(is->subpq_mutex);
+    SDL_DestroyCond(is->subpq_cond);
     if (is->img_convert_ctx)
         sws_freeContext(is->img_convert_ctx);
     av_free(is);
@@ -1198,8 +1217,7 @@ static void video_display(VideoState *is)
         video_image_display(is);
 }
 
-
-static void refresh_thread(void *opaque)
+static int refresh_thread(void *opaque)
 {
     VideoState *is= opaque;
     while(!is->abort_request){
@@ -1210,7 +1228,7 @@ static void refresh_thread(void *opaque)
         //FIXME ideally we should wait the correct time but SDLs event passing is so slow it would be silly
         usleep(is->audio_st && is->show_mode != SHOW_MODE_VIDEO ? rdftspeed*1000 : 5000);
     }
-    return;
+    return 0;
 }
 
 /* get the current audio clock value */
@@ -1221,7 +1239,6 @@ static double get_audio_clock(VideoState *is)
     } else {
         return is->audio_current_pts_drift + av_gettime() / 1000000.0;
     }
-
 }
 
 /* get the current video clock value */
@@ -1323,10 +1340,10 @@ static void pictq_next_picture(VideoState *is) {
     if (++is->pictq_rindex == VIDEO_PICTURE_QUEUE_SIZE)
         is->pictq_rindex = 0;
 
-    LockMutex(is->pictq_mutex);
+    SDL_LockMutex(is->pictq_mutex);
     is->pictq_size--;
-    CondSignal(is->pictq_cond);
-    UnlockMutex(is->pictq_mutex);
+    SDL_CondSignal(is->pictq_cond);
+    SDL_UnlockMutex(is->pictq_mutex);
 }
 
 static void update_video_pts(VideoState *is, double pts, int64_t pos) {
@@ -1336,7 +1353,6 @@ static void update_video_pts(VideoState *is, double pts, int64_t pos) {
     is->video_current_pts_drift = is->video_current_pts - time;
     is->video_current_pos = pos;
     is->frame_last_pts = pts;
-
 }
 
 /* called to display each frame */
@@ -1351,12 +1367,12 @@ static void video_refresh(void *opaque)
     if (is->video_st) {
 retry:
         if (is->pictq_size == 0) {
-            LockMutex(is->pictq_mutex);
+            SDL_LockMutex(is->pictq_mutex);
             if (is->frame_last_dropped_pts != AV_NOPTS_VALUE && is->frame_last_dropped_pts > is->frame_last_pts) {
                 update_video_pts(is, is->frame_last_dropped_pts, is->frame_last_dropped_pos);
                 is->frame_last_dropped_pts = AV_NOPTS_VALUE;
             }
-            UnlockMutex(is->pictq_mutex);
+            SDL_UnlockMutex(is->pictq_mutex);
             //nothing to do, no picture to display in the que
         } else {
             double last_duration, duration, delay;
@@ -1383,9 +1399,9 @@ retry:
             if (delay > 0)
                 is->frame_timer += delay * FFMAX(1, floor((time-is->frame_timer) / delay));
 
-            LockMutex(is->pictq_mutex);
+            SDL_LockMutex(is->pictq_mutex);
             update_video_pts(is, vp->pts, vp->pos);
-            UnlockMutex(is->pictq_mutex);
+            SDL_UnlockMutex(is->pictq_mutex);
 
             if(is->pictq_size > 1){
                 VideoPicture *nextvp= &is->pictq[(is->pictq_rindex+1)%VIDEO_PICTURE_QUEUE_SIZE];
@@ -1404,7 +1420,7 @@ retry:
 
             if(is->subtitle_st) {
                 if (is->subtitle_stream_changed) {
-                    LockMutex(is->subpq_mutex);
+                    SDL_LockMutex(is->subpq_mutex);
 
                     while (is->subpq_size) {
                         free_subpicture(&is->subpq[is->subpq_rindex]);
@@ -1417,8 +1433,8 @@ retry:
                     }
                     is->subtitle_stream_changed = 0;
 
-                    CondSignal(is->subpq_cond);
-                    UnlockMutex(is->subpq_mutex);
+                    SDL_CondSignal(is->subpq_cond);
+                    SDL_UnlockMutex(is->subpq_mutex);
                 } else {
                     if (is->subpq_size > 0) {
                         sp = &is->subpq[is->subpq_rindex];
@@ -1437,10 +1453,10 @@ retry:
                             if (++is->subpq_rindex == SUBPICTURE_QUEUE_SIZE)
                                 is->subpq_rindex = 0;
 
-                            LockMutex(is->subpq_mutex);
+                            SDL_LockMutex(is->subpq_mutex);
                             is->subpq_size--;
-                            CondSignal(is->subpq_cond);
-                            UnlockMutex(is->subpq_mutex);
+                            SDL_CondSignal(is->subpq_cond);
+                            SDL_UnlockMutex(is->subpq_mutex);
                         }
                     }
                 }
@@ -1549,31 +1565,31 @@ static void alloc_picture(void *opaque)
     {
         fprintf( stderr, "Video setup failed!!!\n");
 
-        LockMutex( is->audio_mutex );
+        SDL_LockMutex( is->audio_mutex );
         is->abort_request = 1;
-        CondSignal( is->audio_cond );
-        UnlockMutex( is->audio_mutex );
+        SDL_CondSignal( is->audio_cond );
+        SDL_UnlockMutex( is->audio_mutex );
 
-        LockMutex(is->pictq_mutex);
+        SDL_LockMutex(is->pictq_mutex);
         is->videoq.abort_request = 1;
-        CondSignal(is->pictq_cond);
-        UnlockMutex(is->pictq_mutex);
+        SDL_CondSignal(is->pictq_cond);
+        SDL_UnlockMutex(is->pictq_mutex);
 
         return;
     }
 
-    LockMutex( is->audio_mutex );
+    SDL_LockMutex( is->audio_mutex );
     is->audio_ok_to_start = 1;
-    CondSignal( is->audio_cond );
-    UnlockMutex( is->audio_mutex );
+    SDL_CondSignal( is->audio_cond );
+    SDL_UnlockMutex( is->audio_mutex );
 
     vp->bmp = imgCreateYUV();
     // KOMH: imgCreateYUV() does not fail
 
-    LockMutex(is->pictq_mutex);
+    SDL_LockMutex(is->pictq_mutex);
     vp->allocated = 1;
-    CondSignal(is->pictq_cond);
-    UnlockMutex(is->pictq_mutex);
+    SDL_CondSignal(is->pictq_cond);
+    SDL_UnlockMutex(is->pictq_mutex);
 }
 
 static int queue_picture(VideoState *is, AVFrame *src_frame, double pts1, int64_t pos)
@@ -1603,13 +1619,13 @@ static int queue_picture(VideoState *is, AVFrame *src_frame, double pts1, int64_
 #endif
 
     /* wait until we have space to put a new picture */
-    LockMutex(is->pictq_mutex);
+    SDL_LockMutex(is->pictq_mutex);
 
     while (is->pictq_size >= VIDEO_PICTURE_QUEUE_SIZE &&
            !is->videoq.abort_request) {
-        CondWait(is->pictq_cond, is->pictq_mutex);
+        SDL_CondWait(is->pictq_cond, is->pictq_mutex);
     }
-    UnlockMutex(is->pictq_mutex);
+    SDL_UnlockMutex(is->pictq_mutex);
 
     if (is->videoq.abort_request)
         return -1;
@@ -1634,17 +1650,17 @@ static int queue_picture(VideoState *is, AVFrame *src_frame, double pts1, int64_
         WinPostMsg( hwndKMP, WM_ALLOC_EVENT, is, 0 );
 
         /* wait until the picture is allocated */
-        LockMutex(is->pictq_mutex);
+        SDL_LockMutex(is->pictq_mutex);
         while (!vp->allocated && !is->videoq.abort_request) {
-            CondWait(is->pictq_cond, is->pictq_mutex);
+            SDL_CondWait(is->pictq_cond, is->pictq_mutex);
         }
         /* if the queue is aborted, we have to pop the pending ALLOC event or wait for the allocation to complete */
         if (is->videoq.abort_request/* && SDL_PeepEvents(&event, 1, SDL_GETEVENT, SDL_EVENTMASK(FF_ALLOC_EVENT)) != 1*/) {
             while (!vp->allocated) {
-                CondWait(is->pictq_cond, is->pictq_mutex);
+                SDL_CondWait(is->pictq_cond, is->pictq_mutex);
             }
         }
-        UnlockMutex(is->pictq_mutex);
+        SDL_UnlockMutex(is->pictq_mutex);
 
         if (is->videoq.abort_request)
             return -1;
@@ -1699,14 +1715,14 @@ static int queue_picture(VideoState *is, AVFrame *src_frame, double pts1, int64_
         /* now we can update the picture count */
         if (++is->pictq_windex == VIDEO_PICTURE_QUEUE_SIZE)
             is->pictq_windex = 0;
-        LockMutex(is->pictq_mutex);
+        SDL_LockMutex(is->pictq_mutex);
         is->pictq_size++;
-        UnlockMutex(is->pictq_mutex);
+        SDL_UnlockMutex(is->pictq_mutex);
     }
     return 0;
 }
 
-static void audio_thread( void *arg )
+static int audio_thread( void *arg )
 {
     VideoState *is = arg;
 
@@ -1714,10 +1730,10 @@ static void audio_thread( void *arg )
     {
         // KOMH: when using uniaud and snap, if audio is played before video is
         // initialized, then system will be locked
-        LockMutex( is->audio_mutex );
+        SDL_LockMutex( is->audio_mutex );
         while( !is->audio_ok_to_start && !is->abort_request )
-            CondWait( is->audio_cond, is->audio_mutex );
-        UnlockMutex( is->audio_mutex );
+            SDL_CondWait( is->audio_cond, is->audio_mutex );
+        SDL_UnlockMutex( is->audio_mutex );
     }
 
     kaiSetVolume( is->hkai, MCI_SET_AUDIO_ALL, volume_level );
@@ -1726,8 +1742,10 @@ static void audio_thread( void *arg )
 
 #if 0
     while( kaiStatus( is->hkai ) & KAIS_PLAYING )
-        tmrDelay( 10 );
+        SDL_Delay( 10 );
 #endif
+
+    return 0;
 }
 
 static int get_video_frame(VideoState *is, AVFrame *frame, int64_t *pts, AVPacket *pkt)
@@ -1740,20 +1758,20 @@ static int get_video_frame(VideoState *is, AVFrame *frame, int64_t *pts, AVPacke
     if (pkt->data == flush_pkt.data) {
         avcodec_flush_buffers(is->video_st->codec);
 
-        LockMutex(is->pictq_mutex);
+        SDL_LockMutex(is->pictq_mutex);
         //Make sure there are no long delay timers (ideally we should just flush the que but thats harder)
         for (i = 0; i < VIDEO_PICTURE_QUEUE_SIZE; i++) {
             is->pictq[i].skip = 1;
         }
         while (is->pictq_size && !is->videoq.abort_request) {
-            CondWait(is->pictq_cond, is->pictq_mutex);
+            SDL_CondWait(is->pictq_cond, is->pictq_mutex);
         }
         is->video_current_pos = -1;
         is->frame_last_pts = AV_NOPTS_VALUE;
         is->frame_last_duration = 0;
         is->frame_timer = (double)av_gettime() / 1000000.0;
         is->frame_last_dropped_pts = AV_NOPTS_VALUE;
-        UnlockMutex(is->pictq_mutex);
+        SDL_UnlockMutex(is->pictq_mutex);
 
         return 0;
     }
@@ -1777,7 +1795,7 @@ static int get_video_frame(VideoState *is, AVFrame *frame, int64_t *pts, AVPacke
 
         if (((is->av_sync_type == AV_SYNC_AUDIO_MASTER && is->audio_st) || is->av_sync_type == AV_SYNC_EXTERNAL_CLOCK) &&
              (framedrop>0 || (framedrop && is->audio_st))) {
-            LockMutex(is->pictq_mutex);
+            SDL_LockMutex(is->pictq_mutex);
             if (is->frame_last_pts != AV_NOPTS_VALUE && *pts) {
                 double clockdiff = get_video_clock(is) - get_master_clock(is);
                 double dpts = av_q2d(is->video_st->time_base) * *pts;
@@ -1791,7 +1809,7 @@ static int get_video_frame(VideoState *is, AVFrame *frame, int64_t *pts, AVPacke
                     ret = 0;
                 }
             }
-            UnlockMutex(is->pictq_mutex);
+            SDL_UnlockMutex(is->pictq_mutex);
         }
 
         if (ret)
@@ -1844,7 +1862,6 @@ static int input_get_buffer(AVCodecContext *codec, AVFrame *pic)
         av_log(codec, AV_LOG_ERROR, "Pixel format mismatches %d %d\n", codec->pix_fmt, ctx->outputs[0]->format);
         return -1;
     }
-
     if(!(ref = avfilter_get_video_buffer(ctx->outputs[0], perms, w, h)))
         return -1;
 
@@ -2086,7 +2103,7 @@ static int video_thread(void *arg)
         AVRational tb = filt_out->inputs[0]->time_base;
 #endif
         while (is->paused && !is->videoq.abort_request)
-            tmrDelay(10);
+            SDL_Delay(10);
 #if CONFIG_AVFILTER
         if (   last_w != is->video_st->codec->width
             || last_h != is->video_st->codec->height) {
@@ -2165,7 +2182,7 @@ static int subtitle_thread(void *arg)
 
     for(;;) {
         while (is->paused && !is->subtitleq.abort_request) {
-            tmrDelay(10);
+            SDL_Delay(10);
         }
         if (packet_queue_get(&is->subtitleq, pkt, 1) < 0)
             break;
@@ -2174,12 +2191,12 @@ static int subtitle_thread(void *arg)
             avcodec_flush_buffers(is->subtitle_st->codec);
             continue;
         }
-        LockMutex(is->subpq_mutex);
+        SDL_LockMutex(is->subpq_mutex);
         while (is->subpq_size >= SUBPICTURE_QUEUE_SIZE &&
                !is->subtitleq.abort_request) {
-            CondWait(is->subpq_cond, is->subpq_mutex);
+            SDL_CondWait(is->subpq_cond, is->subpq_mutex);
         }
-        UnlockMutex(is->subpq_mutex);
+        SDL_UnlockMutex(is->subpq_mutex);
 
         if (is->subtitleq.abort_request)
             return 0;
@@ -2213,9 +2230,9 @@ static int subtitle_thread(void *arg)
             /* now we can update the picture count */
             if (++is->subpq_windex == SUBPICTURE_QUEUE_SIZE)
                 is->subpq_windex = 0;
-            LockMutex(is->subpq_mutex);
+            SDL_LockMutex(is->subpq_mutex);
             is->subpq_size++;
-            UnlockMutex(is->subpq_mutex);
+            SDL_UnlockMutex(is->subpq_mutex);
         }
         av_free_packet(pkt);
     }
@@ -2232,7 +2249,7 @@ static void update_sample_display(VideoState *is, short *samples, int samples_si
         len = SAMPLE_ARRAY_SIZE - is->sample_array_index;
         if (len > size)
             len = size;
-        fast_memcpy(is->sample_array + is->sample_array_index, samples, len * sizeof(short));
+        memcpy(is->sample_array + is->sample_array_index, samples, len * sizeof(short));
         samples += len;
         is->sample_array_index += len;
         if (is->sample_array_index >= SAMPLE_ARRAY_SIZE)
@@ -2461,7 +2478,7 @@ static ULONG APIENTRY kai_audio_callback( PVOID pCBData, PVOID pBuffer, ULONG le
                                                     ( short * )is->audio_buf,
                                                     audio_size / n );
                    audio_size = nb_out_samples * n;
-                   fast_memcpy( is->audio_buf, res_audio_buf, audio_size );
+                   memcpy( is->audio_buf, res_audio_buf, audio_size );
                }
 
                if (is->show_mode != SHOW_MODE_VIDEO)
@@ -2473,12 +2490,11 @@ static ULONG APIENTRY kai_audio_callback( PVOID pCBData, PVOID pBuffer, ULONG le
         len1 = is->audio_buf_size - is->audio_buf_index;
         if (len1 > len)
             len1 = len;
-        fast_memcpy(stream, (uint8_t *)is->audio_buf + is->audio_buf_index, len1);
+        memcpy(stream, (uint8_t *)is->audio_buf + is->audio_buf_index, len1);
         len -= len1;
         stream += len1;
         is->audio_buf_index += len1;
     }
-
     bytes_per_sec = is->audio_tgt_freq * is->audio_tgt_channels * av_get_bytes_per_sample(is->audio_tgt_fmt);
     is->audio_write_buf_size = is->audio_buf_size - is->audio_buf_index;
     /* Let's assume the audio driver that is used by SDL has two periods. */
@@ -2548,9 +2564,9 @@ static int stream_component_open(VideoState *is, int stream_index)
         avctx->flags |= CODEC_FLAG_EMU_EDGE;
 
     if (avctx->codec_type == AVMEDIA_TYPE_AUDIO) {
-        env = getenv("KAI_AUDIO_CHANNELS");
+        env = SDL_getenv("KAI_AUDIO_CHANNELS");
         if (env)
-            wanted_channel_layout = av_get_default_channel_layout(atoi(env));
+            wanted_channel_layout = av_get_default_channel_layout(SDL_atoi(env));
         if (!wanted_channel_layout) {
             wanted_channel_layout = (avctx->channel_layout && avctx->channels == av_get_channel_layout_nb_channels(avctx->channel_layout)) ? avctx->channel_layout : av_get_default_channel_layout(avctx->channels);
             wanted_channel_layout &= ~AV_CH_LAYOUT_STEREO_DOWNMIX;
@@ -2630,21 +2646,21 @@ static int stream_component_open(VideoState *is, int stream_index)
 
         memset(&is->audio_pkt, 0, sizeof(is->audio_pkt));
         packet_queue_init(&is->audioq);
-        is->audio_tid = CreateThread( audio_thread, is );
+        is->audio_tid = SDL_CreateThread( audio_thread, is );
         break;
     case AVMEDIA_TYPE_VIDEO:
         is->video_stream = stream_index;
         is->video_st = ic->streams[stream_index];
 
         packet_queue_init(&is->videoq);
-        is->video_tid = CreateThread(video_thread, is);
+        is->video_tid = SDL_CreateThread(video_thread, is);
         break;
     case AVMEDIA_TYPE_SUBTITLE:
         is->subtitle_stream = stream_index;
         is->subtitle_st = ic->streams[stream_index];
         packet_queue_init(&is->subtitleq);
 
-        is->subtitle_tid = CreateThread(subtitle_thread, is);
+        is->subtitle_tid = SDL_CreateThread(subtitle_thread, is);
         break;
     default:
         break;
@@ -2666,7 +2682,7 @@ static void stream_component_close(VideoState *is, int stream_index)
         packet_queue_abort(&is->audioq);
 
         kaiStop( is->hkai );
-        WaitThread( is->audio_tid );
+        SDL_WaitThread(is->audio_tid, NULL);
         kaiClose( is->hkai );
         kaiDone();
 
@@ -2692,11 +2708,11 @@ static void stream_component_close(VideoState *is, int stream_index)
 
         /* note: we also signal this mutex to make sure we deblock the
            video thread in all cases */
-        LockMutex(is->pictq_mutex);
-        CondSignal(is->pictq_cond);
-        UnlockMutex(is->pictq_mutex);
+        SDL_LockMutex(is->pictq_mutex);
+        SDL_CondSignal(is->pictq_cond);
+        SDL_UnlockMutex(is->pictq_mutex);
 
-        WaitThread( is->video_tid );
+        SDL_WaitThread(is->video_tid, NULL);
 
         packet_queue_end(&is->videoq);
         break;
@@ -2705,13 +2721,13 @@ static void stream_component_close(VideoState *is, int stream_index)
 
         /* note: we also signal this mutex to make sure we deblock the
            video thread in all cases */
-        LockMutex(is->subpq_mutex);
+        SDL_LockMutex(is->subpq_mutex);
         is->subtitle_stream_changed = 1;
 
-        CondSignal(is->subpq_cond);
-        UnlockMutex(is->subpq_mutex);
+        SDL_CondSignal(is->subpq_cond);
+        SDL_UnlockMutex(is->subpq_mutex);
 
-        WaitThread( is->subtitle_tid );
+        SDL_WaitThread(is->subtitle_tid, NULL);
 
         packet_queue_end(&is->subtitleq);
         break;
@@ -2858,15 +2874,15 @@ static int read_thread(void *arg)
 
         ret= stream_component_open(is, st_index[AVMEDIA_TYPE_VIDEO]);
     }
-    is->refresh_tid = CreateThread(refresh_thread, is);
+    is->refresh_tid = SDL_CreateThread(refresh_thread, is);
     if (is->show_mode == SHOW_MODE_NONE)
         is->show_mode = ret >= 0 ? SHOW_MODE_VIDEO : SHOW_MODE_RDFT;
     if (ret < 0) {
         // KOMH: resume audio thread if no video
-        LockMutex( is->audio_mutex );
+        SDL_LockMutex( is->audio_mutex );
         is->audio_ok_to_start = 1;
-        CondSignal( is->audio_cond );
-        UnlockMutex( is->audio_mutex );
+        SDL_CondSignal( is->audio_cond );
+        SDL_UnlockMutex( is->audio_mutex );
     }
 
     if (st_index[AVMEDIA_TYPE_SUBTITLE] >= 0) {
@@ -2905,7 +2921,7 @@ static int read_thread(void *arg)
                  (ic->pb && !strncmp(input_filename, "mmsh:", 5)))) {
             /* wait 10 ms to avoid trying to get another packet */
             /* XXX: horrible */
-            tmrDelay(10);
+            SDL_Delay(10);
             continue;
         }
 #endif
@@ -2943,7 +2959,7 @@ static int read_thread(void *arg)
                 && (is->videoq   .nb_packets > MIN_FRAMES || is->video_stream<0)
                 && (is->subtitleq.nb_packets > MIN_FRAMES || is->subtitle_stream<0))) {
             /* wait 10 ms */
-            tmrDelay(10);
+            SDL_Delay(10);
             continue;
         }
         if(eof) {
@@ -2962,7 +2978,7 @@ static int read_thread(void *arg)
                 pkt->stream_index = is->audio_stream;
                 packet_queue_put(&is->audioq, pkt);
             }
-            tmrDelay(10);
+            SDL_Delay(10);
             if(is->audioq.size + is->videoq.size + is->subtitleq.size ==0){
                 if(loop!=1 && (!loop || --loop)){
                     stream_seek(is, start_time != AV_NOPTS_VALUE ? start_time : 0, 0, 0);
@@ -2980,7 +2996,7 @@ static int read_thread(void *arg)
                 eof=1;
             if (ic->pb && ic->pb->error)
                 break;
-            tmrDelay(100); /* wait for user event */
+            SDL_Delay(100); /* wait for user event */
             continue;
         }
         /* check if packet is in play range specified by user, then queue, otherwise discard */
@@ -2999,6 +3015,12 @@ static int read_thread(void *arg)
             av_free_packet(pkt);
         }
     }
+#if 0   // disabled by KOMH
+    /* wait until the end */
+    while (!is->abort_request) {
+        SDL_Delay(100);
+    }
+#endif
 
     ret = 0;
  fail:
@@ -3038,19 +3060,19 @@ static VideoState *stream_open(const char *filename, AVInputFormat *iformat)
     is->xleft = 0;
 
     /* start video display */
-    is->pictq_mutex = CreateMutex();
-    is->pictq_cond = CreateCond();
+    is->pictq_mutex = SDL_CreateMutex();
+    is->pictq_cond = SDL_CreateCond();
 
-    is->subpq_mutex = CreateMutex();
-    is->subpq_cond = CreateCond();
+    is->subpq_mutex = SDL_CreateMutex();
+    is->subpq_cond = SDL_CreateCond();
 
-    is->audio_mutex = CreateMutex();
-    is->audio_cond = CreateCond();
+    is->audio_mutex = SDL_CreateMutex();
+    is->audio_cond = SDL_CreateCond();
 
     tmrInit();
 
     is->av_sync_type = av_sync_type;
-    is->read_tid = CreateThread(read_thread, is);
+    is->read_tid = SDL_CreateThread(read_thread, is);
     if (!is->read_tid) {
         av_free(is);
         return NULL;
@@ -4277,16 +4299,16 @@ static int lockmgr(void **mtx, enum AVLockOp op)
 {
    switch(op) {
       case AV_LOCK_CREATE:
-          *mtx = CreateMutex();
+          *mtx = SDL_CreateMutex();
           if(!*mtx)
               return 1;
           return 0;
       case AV_LOCK_OBTAIN:
-          return !!LockMutex(*mtx);
+          return !!SDL_LockMutex(*mtx);
       case AV_LOCK_RELEASE:
-          return !!UnlockMutex(*mtx);
+          return !!SDL_UnlockMutex(*mtx);
       case AV_LOCK_DESTROY:
-          DestroyMutex(*mtx);
+          SDL_DestroyMutex(*mtx);
           return 0;
    }
    return 1;

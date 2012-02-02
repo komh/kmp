@@ -88,7 +88,7 @@ void CondWait( Cond cond, Mutex mutex )
     LockMutex( mutex );
 }
 
-Thread CreateThread( void ( *fn )( void * ), void *data )
+Thread CreateThread( int ( *fn )( void * ), void *data )
 {
     return _beginthread( fn, NULL, 256 * 1024, data );
 }
