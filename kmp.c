@@ -1089,8 +1089,6 @@ static void stream_close(VideoState *is)
         }
     }
 
-    tmrDone();
-
     SDL_DestroyMutex(is->pictq_mutex);
     SDL_DestroyCond(is->pictq_cond);
     SDL_DestroyMutex(is->subpq_mutex);
@@ -3068,8 +3066,6 @@ static VideoState *stream_open(const char *filename, AVInputFormat *iformat)
 
     is->audio_mutex = SDL_CreateMutex();
     is->audio_cond = SDL_CreateCond();
-
-    tmrInit();
 
     is->av_sync_type = av_sync_type;
     is->read_tid = SDL_CreateThread(read_thread, is);
