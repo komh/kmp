@@ -10,8 +10,7 @@ NAME = vo
 
 OBJS= aclib.o \
       cpudetect.o \
-      osd.o 
+      osd.o
 
 HEADERS = fastmemcpy.h osd.h
 
-include $(SRC_PATH)/subdir.mak

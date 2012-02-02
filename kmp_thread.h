@@ -34,8 +34,8 @@ typedef TID  Thread;
 
 Mutex  CreateMutex( VOID );
 void   DestroyMutex( Mutex mutex );
-void   LockMutex( Mutex mutex );
-void   UnlockMutex( Mutex mutex );
+ULONG  LockMutex( Mutex mutex );
+ULONG  UnlockMutex( Mutex mutex );
 Cond   CreateCond( VOID );
 void   DestroyCond( Cond cond );
 void   CondSignal( Cond cond );

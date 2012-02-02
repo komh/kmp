@@ -47,14 +47,14 @@ void DestroyMutex( Mutex mutex )
     DosCloseMutexSem(( HMTX )mutex );
 }
 
-void LockMutex( Mutex mutex )
+ULONG LockMutex( Mutex mutex )
 {
-    DosRequestMutexSem(( HMTX )mutex, SEM_INDEFINITE_WAIT );
+    return DosRequestMutexSem(( HMTX )mutex, SEM_INDEFINITE_WAIT );
 }
 
-void UnlockMutex( Mutex mutex )
+ULONG UnlockMutex( Mutex mutex )
 {
-    DosReleaseMutexSem(( HMTX )mutex );
+    return DosReleaseMutexSem(( HMTX )mutex );
 }
 
 Cond CreateCond( VOID )

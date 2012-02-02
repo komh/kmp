@@ -14,4 +14,3 @@ HEADERS = subreader.h
 
 CFLAGS-yes += -DUSE_SORTSUB
 
-include $(SRC_PATH)/subdir.mak
