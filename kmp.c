@@ -4386,14 +4386,14 @@ int main( int argc, char **argv )
     signal(SIGINT , sigterm_handler); /* Interrupt (ANSI).    */
     signal(SIGTERM, sigterm_handler); /* Termination (ANSI).  */
 
-    printf("KMP " KMP_VERSION " based on ffplay " FFMPEG_VERSION ", Copyright (c) 2007-2012 KO Myung-Hun.\n");
+    printf("KMP " KMP_VERSION "(ffplay " FFMPEG_VERSION ") Copyright (c) 2007-2012 KO Myung-Hun\n");
 
     parse_options(NULL, argc, argv, options, opt_input_file);
 
     if( plQueryCount( ppl ) == 0 ) {
         show_usage();
         fprintf(stderr, "An input file must be specified\n");
-        fprintf(stderr, "Use -h to get full help or, even better, run 'man %s'\n", program_name);
+        fprintf(stderr, "Use -h to get full help");
         exit(1);
     }
 
