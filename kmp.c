@@ -1,5 +1,5 @@
 /*
- * KMP : K Movie Player based on FFplay
+ * KMP : K Movie Player based on ffplay
  * Copyright (c) 2007-2011 KO Myung-Hun <komh@chollian.net>
  *
  * This file is part of KMP.
@@ -4386,7 +4386,7 @@ int main( int argc, char **argv )
     signal(SIGINT , sigterm_handler); /* Interrupt (ANSI).    */
     signal(SIGTERM, sigterm_handler); /* Termination (ANSI).  */
 
-    printf("KMP " KMP_VERSION " based on FFplay " FFMPEG_VERSION ", Copyright (c) 2007-2012 KO Myung-Hun.\n");
+    printf("KMP " KMP_VERSION " based on ffplay " FFMPEG_VERSION ", Copyright (c) 2007-2012 KO Myung-Hun.\n");
 
     parse_options(NULL, argc, argv, options, opt_input_file);
 
