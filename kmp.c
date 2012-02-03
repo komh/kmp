@@ -386,7 +386,7 @@ static int hide_mouse = 0;
 static int resample = RES_NONE;
 static int use_subimg = 0;
 static int fix_t23 = 0;
-static int no_audio_share = 0;
+static int audio_share = 1;
 static long sub_color_font = COLOR_FONT;
 static long sub_color_outline = COLOR_OUTLINE;
 static long sub_color_shadow = COLOR_SHADOW;
@@ -2607,7 +2607,7 @@ static int stream_component_open(VideoState *is, int stream_index)
         ksWanted.ulDataFormat       = MCI_WAVE_FORMAT_PCM;
         ksWanted.ulNumBuffers       = 2;
         ksWanted.ulBufferSize       = audio_buffer_size ? audio_buffer_size : ( 2 * avctx->channels * 2048 );
-        ksWanted.fShareable         = !no_audio_share;
+        ksWanted.fShareable         = audio_share;
         ksWanted.pfnCallBack        = kai_audio_callback;
         ksWanted.pCallBackData      = is;
 
@@ -2617,7 +2617,7 @@ static int stream_component_open(VideoState *is, int stream_index)
             return -1;
         }
 
-        if( no_audio_share )
+        if( !audio_share )
             printf("Opened audio as exclusive mode\n");
 
         is->audio_hw_buf_size = ksObtained.ulBufferSize;
@@ -4233,7 +4233,7 @@ static const OptionDef options[] = {
     { "autoadd", OPT_BOOL, {(void*)&auto_add}, "automatically add files having a similar name", "" },
     { "xext", HAS_ARG, {(void*)&opt_xext}, "exclude the following extensions on using -autoadd", "e1,e2,..." },
     { "fixt23", OPT_BOOL | OPT_EXPERT, {(void*)&fix_t23}, "workaround diagonal stripes on T23 laptop with S3 Video" },
-    { "noaudioshare", OPT_BOOL | OPT_EXPERT, {(void*)&no_audio_share}, "open audio as exclusive mode" },
+    { "audioshare", OPT_BOOL | OPT_EXPERT, {(void*)&audio_share}, "open audio as (no)shareable mode. default is shareable mode" },
     { "fixsnap", OPT_BOOL | OPT_EXPERT, {(void*)&fix_snap}, "workaround for a larger movie than screen size on snap mode" },
     { "audiobufsize", OPT_INT | HAS_ARG | OPT_EXPERT, {(void*)&audio_buffer_size}, "set audio buffer size in bytes", "size" },
     { "seekinterval", OPT_INT | HAS_ARG | OPT_EXPERT, {(void*)&seek_interval}, "set seek interval time in ms", "time" },
