@@ -1,4 +1,4 @@
-                           K Movie Player v0.6.3
+                           K Movie Player v0.7.0
                           -----------------------
                             
 1. Introduce
@@ -12,7 +12,7 @@ and eComStation.
   
   - OS/2 Warp v4 for Korean with FixPak #15
   
-  - GCC v4.4.5
+  - GCC v4.4.6
   
   - OS/2 ToolKit v4.5
   
@@ -20,20 +20,20 @@ and eComStation.
 
   - lxlite v1.3.3 ( for strip of debugging infos )
   
-  - SubVersion v1.6.13( to merge with latest FFMpeg sources )
-
-  - libkva v1.1.2
+  - libkva v1.2.0
   
   - libkai v1.1.1
+  
+  - git v1.7.3.2 ( to clone the latest FFmpeg sources )
   
 3. Requirement
 ---------------------
 
   - Audio : UNIAUD, DART
 
-  - Video : SNAP, WarpOverlay!, DIVE
+  - Video : SNAP, WarpOverlay!, VMAN, DIVE
 
-  - RunTime : kLIBC v0.6.3
+  - RunTime : kLIBC v0.6.4
   
 4. Test Environment
 -------------------
@@ -74,11 +74,11 @@ Ctrl+down/up        volume down/up by 5%
 mouse click         seek to position in file corresponding to fraction of width
 +/-                 grow up/down font size
 Alt-0/1/2/3         set aspec ratio none/original/force43/force169 respectively
-8/9                 brightness down/up by 5 level(except dive)
-i/o                 contrast down/up by 5 level(except dive)
-k/l                 saturation down/up by 5 level(except dive)
-,/.                 hue down/up by 5 level(except dive)
-/                   reset attributes(b/c/s/h) to default value(except dive)
+8/9                 brightness down/up by 5 level(except vman/dive)
+i/o                 contrast down/up by 5 level(except vman/dive)
+k/l                 saturation down/up by 5 level(except vman/dive)
+,/.                 hue down/up by 5 level(except vman/dive)
+/                   reset attributes(b/c/s/h) (except vman/dive)
 [/]                 correct subtitle sync -/+ 0.5 seconds
 PageUp/PageDown     play a previous/next file
 ;/'                 correct audio sync -/+ 0.1 seconds(experimental)
@@ -89,7 +89,7 @@ d                   display an information about a playing file on OSD
 
 6.2.1 Main options
 ------------------
--video driver       set video driver (driver=auto/snap/wo/dive)
+-video driver       set video driver (driver=auto/snap/wo/vman/dive)
 -audio driver       set audio driver (driver=auto/uniaud/dart)
 -vol level          set initial volume level in percentage
 -subfont xx.name    set subtitle font name and size (xx=size, name=font name)
@@ -97,10 +97,10 @@ d                   display an information about a playing file on OSD
 -aspect ratio       set aspect ratio (ratio=none, original, force43, force169)
 -framedrop          frame drop if necessary
 -hidemouse          hide mouse pointer on full screen mode
--brightness level   set brightness level, except dive (level=0..255)
--contrast level     set contrast level, except dive (level=0..255)
--saturation level   set saturation level, except dive (level=0..255)
--hue level          set hue level, except dive (level=0..255)
+-brightness level   set brightness level, except vman/dive (level=0..255)
+-contrast level     set contrast level, except vman/dive (level=0..255)
+-saturation level   set saturation level, except vman/dive (level=0..255)
+-hue level          set hue level, vman/except dive (level=0..255)
 -res48              resample 48KHz audio to 44.1KHz(experimental)
 -subimg             display subtitles/OSD to image
 -subcolor f,o,s     set subtitle color in hexa RGB(font, outline, shadow) *
@@ -113,7 +113,7 @@ d                   display an information about a playing file on OSD
 6.2.2 Advanced options
 ----------------------
 -fixt23             workaround diagonal stripes on T23 laptop with S3 Video
--noaudioshare       open audio as exclusive mode
+-(no)audioshare     open audio as (no)shareable mode. default is shareable mode
 -fixsnap            workaround for a larger movie than screen size on snap mode
 -audiobufsize size  set audio buffer size in bytes
 -seekinterval time  set seek interval time in ms
@@ -150,10 +150,10 @@ one argument per one line in response file. For examples,
 
   - Some movie files aren't played up to its play time or auto-closed.
   
-  - On dive mode, boundary and shadow of subtitle is not displayed well. 
+  - On vman/dive mode, boundary and shadow of subtitle is not displayed well. 
     GpiBitBlt() is missing a needed function. Use -subimg option.
     
-  - On dive mode, subtitle/OSD is flickering. Use -subimg option.
+  - On vman/dive mode, subtitle/OSD is flickering. Use -subimg option.
   
   - Don't support codepage conversion of subtitle.
   
@@ -168,10 +168,13 @@ one argument per one line in response file. For examples,
   
   - Non-interleaved AVI file is not supported correctly.
 
-  - The old UNIAUD driver may cause an audio problem, especially when seeking. 
-  
-  - If you use DIVE mode while turning comet curosr feature on, system hiccups 
-    whenever moving mouse. Use only one of them.
+  - UNIAUD driver may cause an audio problem, especially when seeking. Please 
+    use the following driver.
+
+     http://www.ecomstation.co.kr/komh/testcase/uniaud32_test.zip
+
+  - If you use vman/dive mode while turning comet curosr feature on, system 
+    hiccups whenever moving mouse. Use only one of them.
     
 8. TODOs...
 -----------
@@ -180,6 +183,11 @@ one argument per one line in response file. For examples,
       
 9. History
 ----------
+
+  - v0.7.0 ( 2012/02/03 )
+    .Synchronized with ffplay N-37502-gd1af5c2 sources
+    .Support VMAN mode( using libkva v1.2.0 )
+    .Support BGR4 color space on vman/dive( using libkva v1.2.0 )
 
   - v0.6.3 ( 2011/02/06 )
     .Synchronized with FFplay SVN-r26402 sources
@@ -346,10 +354,6 @@ v4.5.
   
       make SHELL=/bin/sh
 
-  To update sources, do the following
-  
-      svn update
-      
 11. Modules
 -----------
 

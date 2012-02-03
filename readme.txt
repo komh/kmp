@@ -1,4 +1,4 @@
-                             K Movie Player v0.6.3
+                             K Movie Player v0.7.0
                             -----------------------
                             
 1. 소개
@@ -12,7 +12,7 @@ eComStation 에서 재생하기 위해 만들어졌습니다.
   
   - 한국어판 OS/2 Warp v4 with FixPak #15
   
-  - GCC v4.4.5
+  - GCC v4.4.6
   
   - OS/2 ToolKit v4.5
   
@@ -20,20 +20,20 @@ eComStation 에서 재생하기 위해 만들어졌습니다.
 
   - lxlite v1.3.3 ( 디버깅 정보 제거 )
   
-  - SubVersion 1.6.13 ( 최신 FFMpeg 소스와 합치기 )
-  
-  - libkva v1.1.2
+  - libkva v1.2.0
   
   - libkai v1.1.1
+
+  - git v1.7.3.2 ( 선택, 최신 FFmpeg 소스 받기 )
       
 3. 실행에 필요한 환경
 ---------------------
 
   - 오디오 : UNIAUD, DART
 
-  - 비디오 : SNAP, WarpOverlay!, DIVE
+  - 비디오 : SNAP, WarpOverlay!, VMAN, DIVE
   
-  - RunTime : kLIBC v0.6.3
+  - RunTime : kLIBC v0.6.4
 
 4. 시험 환경
 ------------
@@ -75,11 +75,11 @@ Ctrl+down/up        볼륨 5% 씩 낮추기/높이기
 mouse click         화면비만큼 위치 이동 
 +/-                 글꼴 크기 크게/작게
 Alt-0/1/2/3         각각 화면비를 none/original/force43/force169 으로 바꾸기
-8/9                 밝기 5 단계씩 어둡게/밝게 ( wo 만 지원 )
-i/o                 대비 5 단계씩 낮추기/높이기 ( wo 만 지원 )
-k/l                 채도 5 단계씩 낮추기/높이기 ( wo 만 지원 )
-,/.                 색상 5 단계씩 낮추기/높이기 ( wo 만 지원 )
-/                   밝기/대비/채도/색상 기본값으로 ( wo 만 지원 )
+8/9                 밝기 5 단계씩 어둡게/밝게 ( vman/dive 제외 )
+i/o                 대비 5 단계씩 낮추기/높이기 ( vman/dive 제외 )
+k/l                 채도 5 단계씩 낮추기/높이기 ( vman/dive 제외 )
+,/.                 색상 5 단계씩 낮추기/높이기 ( vman/dive 제외 )
+/                   밝기/대비/채도/색상 기본값으로 ( vman/dive 제외 )
 [/]                 텍스트 파일 자막 싱크 0.5 초씩 빨리/느리게
 PageUp/PageDown     이전/다음 파일 재생
 ;/'                 -/+ 0.1 초 단위로 오디오 싱크 수정(실험중)
@@ -90,17 +90,17 @@ d                   재생 파일 정보를 OSD 로 보여줌
 
 6.2.1 주 선택사항
 -----------------
--video driver       비디오 드라이버 설정 (driver=auto/snap/wo/dive)
+-video driver       비디오 드라이버 설정 (driver=auto/snap/wo/vman/dive)
 -audio driver       오디오 드라이버 설정 (driver=auto/uniaud/dart)
 -vol level          처음 볼륨값을 퍼센트 단위로 지정
 -subfont xx.name    자막 글꼴과 크기 지정 (xx=크기, name=글꼴 이름)
 -osdfont xx.name    OSD 글꼴과 크기 지정 (xx=크기, name=글꼴 이름)
 -aspect ratio       화면비율 지정 (ratio=none, original, force43, force169)
 -hidemouse          전체화면에서 마우스 포인터를 감춤
--brightness level   밝기 지정, dive 제외(level=0..255)
--contrast level     대비 지정, dive 제외(level=0..255)
--saturation level   채도 지정, dive 제외(level=0..255)
--hue level          색상 지정, dive 제외(level=0..255)
+-brightness level   밝기 지정, vman/dive 제외(level=0..255)
+-contrast level     대비 지정, vman/dive 제외(level=0..255)
+-saturation level   채도 지정, vman/dive 제외(level=0..255)
+-hue level          색상 지정, vman/dive 제외(level=0..255)
 -res48              48KHz 오디오를 44.1KHz 오디오로 변환(실험중)
 -subimg             자막/OSD 를 이미지에 직접 출력
 -subcolor f,o,s     자막색을 16진수 RGB 형태로 지정(f=글꼴, o=윤곽, s=그림자) *
@@ -113,7 +113,7 @@ d                   재생 파일 정보를 OSD 로 보여줌
 6.2.2 고급 선택사항
 -------------------
 -fixt23             이미지 축소 기능이 없는 비디오 카드(S3)의 문제 해결
--noaudioshare       오디오를 독점 모드로 사용
+-(no)audioshare     오디오를 (비)공유 모드로 엶. 기본은 공유모드
 -fixsnap            snap 모드일 때, 동영상이 화면 크기보다 크면 자동으로 축소함
 -audiobufsize size  오디오 버퍼의 크기를 바이트 단위로 지정
 -seekinterval time  밀리초 단위로 탐색 시간 간격 설정
@@ -154,10 +154,10 @@ d                   재생 파일 정보를 OSD 로 보여줌
 
   - 일부 동영상 파일은 끝까지 재생이 안되거나, 자동종료가 안됩니다.
 
-  - dive 모드일 때, OSD 와 자막의 테두리와 그림자가 제대로 표시되지 않습니다. 
-    GpiBitBlt() 에 필요한 기능이 없습니다. -subimg 을 사용하십시오.
+  - vman/dive 모드일 때, OSD 와 자막의 테두리와 그림자가 제대로 표시되지 
+    않습니다. GpiBitBlt() 에 필요한 기능이 없습니다. -subimg 을 사용하십시오.
     
-  - dive 모드일 때, OSD 와 자막이 깜빡거립니다. -subimg 을 사용하십시오.
+  - vman/dive 모드일 때, OSD 와 자막이 깜빡거립니다. -subimg 을 사용하십시오.
 
   - 자막 파일의 코드 페이지 변환을 지원하지 않습니다.
   
@@ -172,10 +172,12 @@ d                   재생 파일 정보를 OSD 로 보여줌
 
   - Non-interleaved AVI 파일은 제대로 지원되지 않습니다.
   
-  - 오래된 UNIAUD 드라이버를 사용하는 경우, 특히 탐색을 할 때, 오디오 재생에 
-    문제가 생길 수 있습니다. UNIAUD 1.9.22 또는 이후 것을 사용하십시오.
+  - UNIAUD 드라이버를 사용하는 경우, 특히 탐색을 할 때, 오디오 재생에 문제가 
+    생길 수 있습니다. 다음 드라이버를 사용하시기 바랍니다.
 
-  - 혜성 커서 기능을 켠 상태에서 DIVE 모드로 재생을 하면, 마우스를 움직일 
+     http://www.ecomstation.co.kr/komh/testcase/uniaud32_test.zip
+
+  - 혜성 커서 기능을 켠 상태에서 vman/dive 모드로 재생을 하면, 마우스를 움직일 
     때마다 시스템이 일시적으로 멈춥니다. 둘 중에 하나만 사용하십시오.
     
 8. 할 것들...
@@ -186,6 +188,11 @@ d                   재생 파일 정보를 OSD 로 보여줌
 9. 판번호 보기
 --------------
 
+  - v0.7.0 ( 2012/02/03 )
+    .ffplay N-37502-gd1af5c2 소스 사용
+    .VMAN 모드 지원( libkva v1.2.0 사용 )
+    .vman/dive 모드에서 BGR4 색공간 지원( libkva v1.2.0 사용 )
+    
   - v0.6.3 ( 2011/02/06 )
     .FFplay SVN-r26402 소스 사용
     .audio 모드일 때, -subimg 사용하면 프로그램 이상 종료. 고침
@@ -340,10 +347,6 @@ LIBRARY_PATH 에 OS/2 ToolKit 4.5 관련 설정을 해주십시오.
   작업이 끝났으면 다음처럼 make 를 실행시킵니다.
   
       make SHELL=/bin/sh
-      
-  소스를 최신으로 갱신하기 위해서는 다음처럼 하십시오.
-  
-      svn update
 
 11. 모듈 설명
 -------------
