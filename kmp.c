@@ -1,6 +1,6 @@
 /*
  * KMP : K Movie Player based on ffplay
- * Copyright (c) 2007-2011 KO Myung-Hun <komh@chollian.net>
+ * Copyright (c) 2007-2012 KO Myung-Hun <komh@chollian.net>
  *
  * This file is part of KMP.
  *

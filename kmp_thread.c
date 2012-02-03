@@ -1,6 +1,6 @@
 /*
     KMP : Thread library for OS/2
-    Copyright (C) 2007-2008 by KO Myung-Hun <komh@chollian.net>
+    Copyright (C) 2007-2012 by KO Myung-Hun <komh@chollian.net>
 
     This file is part of KMP.
 
