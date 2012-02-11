@@ -128,7 +128,7 @@ static APIRET imgConvertInit( LONG cx, LONG cy, FOURCC *pfcc )
     else if( kvac.ulInputFormatFlags & KVAF_BGR32 )
     {
         *pfcc = FOURCC_BGR4;
-        dst_pix_fmt = PIX_FMT_BGR32;
+        dst_pix_fmt = PIX_FMT_BGR0;
     }
     else if( kvac.ulInputFormatFlags & KVAF_BGR24 )
     {
