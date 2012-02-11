@@ -1,4 +1,4 @@
-                           K Movie Player v0.7.0
+                           K Movie Player v0.7.1
                           -----------------------
                             
 1. Introduce
@@ -184,6 +184,10 @@ one argument per one line in response file. For examples,
 9. History
 ----------
 
+  - v0.7.1 ( 2012/02/11 )
+    .Red and Blue is swapped when using BGR4 color-space. Fixed 
+     ( Reported by pasha )
+    
   - v0.7.0 ( 2012/02/03 )
     .Synchronized with ffplay N-37502-gd1af5c2 sources
     .Support VMAN mode( using libkva v1.2.0 )
