@@ -402,7 +402,7 @@ static int seek_interval = 100;
 #define WM_REFRESH_EVENT    ( WM_USER + 2 )
 
 #define KMP_NAME    "K Movie Player"
-#define KMP_VERSION "v0.7.1"
+#define KMP_VERSION "v0.7.2"
 
 #define TID_SECOND      ( TID_USERMAX - 1 )
 #define TID_INFORM      ( TID_USERMAX - 2 )
