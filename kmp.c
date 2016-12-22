@@ -280,7 +280,6 @@ typedef struct VideoState {
 
     Thread audio_tid;
     int use_sub;
-    ReSampleContext *rsc;
     int paint_in_pause;
     Mutex audio_mutex;
     Cond audio_cond;
@@ -2469,20 +2468,6 @@ static ULONG APIENTRY kai_audio_callback( PVOID pCBData, PVOID pBuffer, ULONG le
                is->audio_buf      = is->silence_buf;
                is->audio_buf_size = sizeof(is->silence_buf) / frame_size * frame_size;
            } else {
-               if( is->rsc )
-               {
-                   int n;
-                   int nb_out_samples;
-
-                   n = 2 * is->audio_st->codec->channels;
-                   nb_out_samples = audio_resample( is->rsc,
-                                                    ( short * )res_audio_buf,
-                                                    ( short * )is->audio_buf,
-                                                    audio_size / n );
-                   audio_size = nb_out_samples * n;
-                   memcpy( is->audio_buf, res_audio_buf, audio_size );
-               }
-
                if (is->show_mode != SHOW_MODE_VIDEO)
                    update_sample_display(is, (int16_t *)is->audio_buf, audio_size);
                is->audio_buf_size = audio_size;
@@ -2535,18 +2520,6 @@ static int stream_component_open(VideoState *is, int stream_index)
     if (!codec)
         return -1;
 
-    if (avctx->codec_type == AVMEDIA_TYPE_AUDIO) {
-        if(( resample == RES_48KONLY ) && ( avctx->sample_rate == 48000 ))
-        {
-            printf("Resample 48KHz to 44.1KHz\n");
-            is->rsc = av_audio_resample_init( avctx->channels, avctx->channels,
-                                              44100, avctx->sample_rate,
-                                              is->audio_src_fmt, is->audio_src_fmt,
-                                              16, 10, 0, 0.8 );
-            avctx->sample_rate = 44100;
-        }
-    }
-
     avctx->workaround_bugs = workaround_bugs;
     avctx->lowres = lowres;
     if(avctx->lowres > codec->max_lowres){
@@ -2580,7 +2553,13 @@ static int stream_component_open(VideoState *is, int stream_index)
             }
         }
         ksWanted.ulChannels = av_get_channel_layout_nb_channels(wanted_channel_layout);
-        ksWanted.ulSamplingRate = avctx->sample_rate;
+        if( resample == RES_48KONLY && avctx->sample_rate == 48000 ) {
+            printf("Resample 48KHz to 44.1KHz\n");
+            ksWanted.ulSamplingRate = 44100;
+        }
+        else
+            ksWanted.ulSamplingRate = avctx->sample_rate;
+
         if (ksWanted.ulSamplingRate <= 0 || ksWanted.ulChannels <= 0) {
             fprintf(stderr, "Invalid sample rate or channel count!\n");
             return -1;
@@ -2626,7 +2605,8 @@ static int stream_component_open(VideoState *is, int stream_index)
 
         is->audio_hw_buf_size = ksObtained.ulBufferSize;
         is->audio_src_fmt = is->audio_tgt_fmt = AV_SAMPLE_FMT_S16;
-        is->audio_src_freq = is->audio_tgt_freq = ksObtained.ulSamplingRate;
+        is->audio_src_freq = avctx->sample_rate;
+        is->audio_tgt_freq = ksObtained.ulSamplingRate;
         is->audio_src_channel_layout = is->audio_tgt_channel_layout = wanted_channel_layout;
         is->audio_src_channels = is->audio_tgt_channels = ksObtained.ulChannels;
     }
@@ -2702,8 +2682,6 @@ static void stream_component_close(VideoState *is, int stream_index)
             is->rdft = NULL;
             is->rdft_bits = 0;
         }
-        if( is->rsc )
-            audio_resample_close( is->rsc );
         break;
     case AVMEDIA_TYPE_VIDEO:
         packet_queue_abort(&is->videoq);
