@@ -1,7 +1,6 @@
 extproc sh
 
-./configure --prefix=/usr \
-            --enable-gpl \
+./configure --enable-gpl \
             --enable-postproc \
             --enable-os2threads \
             --disable-pthreads \
